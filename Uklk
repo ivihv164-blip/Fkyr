@@ -1,0 +1,97 @@
+-- Fly + Draggable Toggle
+-- LocalScript
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local flying = false
+local speed = 60
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "FlyMenu"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 90, 0, 90)
+button.Position = UDim2.new(0.5, -45, 0.5, -45)
+button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Text = "FLY\nOFF"
+button.TextSize = 18
+button.Font = Enum.Font.GothamBold
+button.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = button
+
+-- เปิด/ปิด Fly
+button.MouseButton1Click:Connect(function()
+	flying = not flying
+	button.Text = flying and "FLY\nON" or "FLY\nOFF"
+end)
+
+-- ลากปุ่มได้
+local dragging = false
+local dragStart
+local startPos
+
+button.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = button.Position
+	end
+end)
+
+button.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if dragging and (
+		input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch
+	) then
+		local delta = input.Position - dragStart
+		button.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- ระบบบิน
+RunService.RenderStepped:Connect(function()
+	if not flying then return end
+
+	local character = player.Character
+	if not character then return end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not root then return end
+
+	local camera = workspace.CurrentCamera
+	local direction = humanoid.MoveDirection
+
+	root.AssemblyLinearVelocity =
+		(direction * speed) + Vector3.new(0, 25, 0)
+
+	if direction.Magnitude > 0 then
+		root.CFrame = CFrame.lookAt(
+			root.Position,
+			root.Position + camera.CFrame.LookVector
+		)
+	end
+end)
